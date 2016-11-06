@@ -5,44 +5,11 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-type Handler interface {
-	Name() string
-}
 
-type MessageHandler interface {
-	Handler
-	HandleNewMessage(
-		context *Context,
-		channel *Channel,
-		message *Message) error
-}
-
-type Channel struct {
-	c  *Context
-	ch *discordgo.Channel
-}
-
-type Message struct {
-	c   *Context
-	msg *discordgo.Message
-}
-
-func (m *Message) Text() string {
-	return m.msg.Content
-}
-
-func (m *Message) Respond(text string) (*Message, error) {
-	msg, err := m.c.s.ChannelMessageSend(m.msg.ChannelID, text)
-	return &Message{msg: msg, c: m.c}, err
-}
-
-type Context struct {
-	s *discordgo.Session
-}
 
 type Bot struct {
-	c    *Context
-	msgH map[string]MessageHandler
+	context *Context
+	msgH    map[string]MessageHandler
 }
 
 func NewBot(token string) (*Bot, error) {
@@ -51,8 +18,8 @@ func NewBot(token string) (*Bot, error) {
 		return nil, err
 	}
 	b := &Bot{
-		c:    &Context{s: dg},
-		msgH: map[string]MessageHandler{},
+		context: &Context{intSession: dg},
+		msgH:    map[string]MessageHandler{},
 	}
 
 	dg.AddHandler(b.execMessageHandlers)
@@ -65,6 +32,7 @@ func NewBot(token string) (*Bot, error) {
 	return b, nil
 }
 
+// Add a message handler to the global context
 func (b *Bot) AddMessageHandler(m MessageHandler) error {
 	if _, ok := b.msgH[m.Name()]; ok {
 		return errs.ErrHandlerNameDuplicate
@@ -73,16 +41,32 @@ func (b *Bot) AddMessageHandler(m MessageHandler) error {
 	return nil
 }
 
+// RemoveMessageHandler will remove a message handler from the global
+// context
+func (b *Bot) RemoveMessageHandler(m MessageHandler) {
+	delete(b.msgH, m.Name())
+}
+
+// ResetMessageHandlers will delete all registered message handlers
+func (b *Bot) ResetMessageHandlers() {
+	b.msgH = map[string]MessageHandler{}
+}
+
+// CurrentContext returns the current context pointer.
+func (b *Bot) CurrentContext() *Context {
+	return b.context
+}
+
 func (b *Bot) execMessageHandlers(
 	s *discordgo.Session, m *discordgo.Message) error {
 	rawChan, err := s.Channel(m.ChannelID)
 	if err != nil {
 		return err
 	}
-	ch := &Channel{ch: rawChan, c: b.c}
-	msg := &Message{msg: m, c: b.c}
+	ch := &Channel{intChannel: rawChan, context: b.context}
+	msg := &Message{intMessage: m, context: b.context}
 	for k, v := range b.msgH {
-		err := v.HandleNewMessage(b.c, ch, msg)
+		err := v.HandleNewMessage(b.context, ch, msg)
 		if err != nil {
 			return errs.NewHandlerError(err, k)
 		}

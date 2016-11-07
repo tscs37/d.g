@@ -10,8 +10,9 @@ type Handler interface {
 type MessageHandler interface {
 	Handler
 	HandleNewMessage(
-		context *Context,
+		context Context,
 		channel *Channel,
 		message *Message) error
 }
 
+type SimpleMessageHandler func(Context, *Channel, *Message) error

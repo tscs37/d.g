@@ -6,7 +6,7 @@ import (
 
 // Channel wraps a channel with context
 type Channel struct {
-	context    *Context
+	context    Context
 	intChannel *discordgo.Channel
 }
 
@@ -26,8 +26,17 @@ func (c *Channel) Write(message string) (*Message, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Message{
-		intMessage: msg,
-		context:    c.context,
-	}, nil
+	return c.context.messageFromRaw(msg), nil
+}
+
+func (c *Channel) ID() string {
+	return c.intChannel.ID
+}
+
+func (c *Channel) MessageFromId(id string) (*Message, error) {
+	msg, err := c.context.int().ChannelMessage(c.ID(), id)
+	if err != nil {
+		return nil, err
+	}
+	return c.context.messageFromRaw(msg), nil
 }

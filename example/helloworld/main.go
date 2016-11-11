@@ -8,6 +8,8 @@ import (
 )
 
 func main() {
+	ddg.EnableDebug()
+
 	token, err := ioutil.ReadFile("./token.txt")
 	if err != nil {
 		fmt.Println(err)
@@ -26,7 +28,7 @@ func main() {
 
 	fmt.Println("Ready!")
 
-	bot.AddSimpleMessageHandler(handler)
+	bot.Mux().AddHandler(handler)
 
 	bot.BlockForExit()
 }
@@ -48,6 +50,10 @@ func handler(c ddg.Context, ch *ddg.Channel, m *ddg.Message) error {
 
 	if m.DisplayText() == "exit" {
 		c.RequestExit()
+	}
+
+	if m.DisplayText() == "nick" {
+
 	}
 
 	return nil

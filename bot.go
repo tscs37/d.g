@@ -64,7 +64,7 @@ func (b *Bot) Me() (*User, error) {
 func (b *Bot) execHandler(s *discordgo.Session, ev interface{}) error {
 	switch t := ev.(type) {
 	case *discordgo.MessageCreate:
-		return b.evMux.Dispatch(NewMessageEvent{context: b.context, m: t})
+		return b.evMux.Dispatch(&NewMessageEvent{context: b.context, m: t})
 	}
 	return nil
 }

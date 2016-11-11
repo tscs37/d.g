@@ -7,14 +7,12 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"bitbucket.org/tscs37/discorddotgo/errs"
 	"github.com/bwmarrin/discordgo"
 )
 
 type Bot struct {
 	context Context
-	msgH    map[string]MessageHandler
-	msgSH   []SimpleMessageHandler
+	evMux   EventMux
 }
 
 func NewBot(token string) (*Bot, error) {
@@ -24,11 +22,10 @@ func NewBot(token string) (*Bot, error) {
 	}
 	b := &Bot{
 		context: Context{intSession: dg, exit: make(chan bool)},
-		msgH:    map[string]MessageHandler{},
-		msgSH:   []SimpleMessageHandler{},
+		evMux:   &SimpleMux{},
 	}
-
-	dg.AddHandler(b.execMessageHandlers)
+	b.evMux.(*SimpleMux).ResetMessageHandlers()
+	dg.AddHandler(b.execHandler)
 
 	err = dg.Open()
 	if err != nil {
@@ -38,29 +35,20 @@ func NewBot(token string) (*Bot, error) {
 	return b, nil
 }
 
-// Add a message handler to the global context
-func (b *Bot) AddMessageHandler(m MessageHandler) error {
-	if _, ok := b.msgH[m.Name()]; ok {
-		return errs.ErrHandlerNameDuplicate
-	}
-	b.msgH[m.Name()] = m
-	return nil
+// Mux returns the currently used Event Mux of the bot
+func (b *Bot) Mux() EventMux {
+	return b.evMux
 }
 
-func (b *Bot) AddSimpleMessageHandler(f SimpleMessageHandler) {
-	b.msgSH = append(b.msgSH, f)
+// SetMux sets a custom event mux/dispatch
+func (b *Bot) SetMux(ev EventMux) {
+	b.evMux = ev
 }
 
-// RemoveMessageHandler will remove a message handler from the global
-// context
-func (b *Bot) RemoveMessageHandler(m MessageHandler) {
-	delete(b.msgH, m.Name())
-}
-
-// ResetMessageHandlers will delete all registered message handlers
-func (b *Bot) ResetMessageHandlers() {
-	b.msgH = map[string]MessageHandler{}
-	b.msgSH = []SimpleMessageHandler{}
+// RestoreDefaultMux sets the default SimpleMux handler
+func (b *Bot) RestoreDefaultMux() {
+	b.evMux = &SimpleMux{}
+	b.evMux.(*SimpleMux).ResetMessageHandlers()
 }
 
 // CurrentContext returns the current context pointer.
@@ -68,29 +56,15 @@ func (b *Bot) CurrentContext() Context {
 	return b.context
 }
 
+// Me returns the current bot user (using @me) or an error.
 func (b *Bot) Me() (*User, error) {
 	return b.context.UserFromID("@me")
 }
 
-func (b *Bot) execMessageHandlers(
-	s *discordgo.Session, m *discordgo.MessageCreate) error {
-	rawChan, err := s.Channel(m.ChannelID)
-	if err != nil {
-		return err
-	}
-	ch := &Channel{intChannel: rawChan, context: b.context}
-	msg := &Message{intMessage: m.Message, context: b.context}
-	for k, v := range b.msgH {
-		err := v.HandleNewMessage(b.context, ch, msg)
-		if err != nil {
-			return errs.NewHandlerError(err, k)
-		}
-	}
-	for _, v := range b.msgSH {
-		err := v(b.context, ch, msg)
-		if err != nil {
-			return errs.NewHandlerError(err, "simple-handler")
-		}
+func (b *Bot) execHandler(s *discordgo.Session, ev interface{}) error {
+	switch t := ev.(type) {
+	case *discordgo.MessageCreate:
+		return b.evMux.Dispatch(NewMessageEvent{context: b.context, m: t})
 	}
 	return nil
 }
@@ -125,6 +99,18 @@ func (b *Bot) SetAvatarFromURI(uri string) error {
 	return b.SetAvatarFromFile(resp.Body)
 }
 
+// BlockForExit will block on the exit channel of the bot.
+// Any code that has access to the application context can unblock
+// this method, which usually means exiting the application.
+// Exiting the entire application is not enforced, this function only blocks,
+// so it may be used to restart the bot too.
 func (b *Bot) BlockForExit() {
 	<-b.context.exit
+}
+
+// GetDiscordgoSession returns the underlying session the bot instance is using.
+// This is not recommended unless the functionality you want to use is not
+// implemented on d.g yet.
+func (b *Bot) GetDiscordgoSession() *discordgo.Session {
+	return b.context.intSession
 }

@@ -8,9 +8,6 @@ d.g is heavily context-based and focues on bot development.
 The goal is that all functionality a bot might need is provided out of the box
 and can be used without having to think about the discord API.
 
-**Note** The official import path is `pit.timschuster.info/d.g`, this URL
-will point at the newest d.g on a best effort basis.
-
 ## How to create a bot
 
 A bot is easily created with d.g

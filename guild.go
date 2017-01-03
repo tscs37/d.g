@@ -1,4 +1,4 @@
-package discorddotgo
+package discorddgo
 
 import (
 	"github.com/bwmarrin/discordgo"

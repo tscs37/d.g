@@ -1,4 +1,4 @@
-package discorddotgo
+package discorddgo
 
 import (
 	"encoding/base64"
@@ -7,24 +7,37 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"strings"
+
+	"os"
+
 	"github.com/bwmarrin/discordgo"
 )
 
+// A bot is a running discord session intended for usage
+// with a Bot-type Login
 type Bot struct {
 	context Context
-	evMux   EventMux
+	evMux   EventSink
 }
 
+// NewBot uses the given token to log into discord and return
+// a Bot-type session.
+//
+// The "Bot " authorization string is automatically appended
+// if not found.
 func NewBot(token string) (*Bot, error) {
-	dg, err := discordgo.New("Bot " + token)
+	if !strings.HasPrefix(token, "Bot ") {
+		token = "Bot " + token
+	}
+	dg, err := discordgo.New()
 	if err != nil {
 		return nil, err
 	}
 	b := &Bot{
 		context: Context{intSession: dg, exit: make(chan bool)},
-		evMux:   &SimpleMux{},
+		evMux:   nil,
 	}
-	b.evMux.(*SimpleMux).ResetMessageHandlers()
 	dg.AddHandler(b.execHandler)
 
 	err = dg.Open()
@@ -36,19 +49,13 @@ func NewBot(token string) (*Bot, error) {
 }
 
 // Mux returns the currently used Event Mux of the bot
-func (b *Bot) Mux() EventMux {
+func (b *Bot) Sink() EventSink {
 	return b.evMux
 }
 
 // SetMux sets a custom event mux/dispatch
-func (b *Bot) SetMux(ev EventMux) {
+func (b *Bot) SetSink(ev EventSink) {
 	b.evMux = ev
-}
-
-// RestoreDefaultMux sets the default SimpleMux handler
-func (b *Bot) RestoreDefaultMux() {
-	b.evMux = &SimpleMux{}
-	b.evMux.(*SimpleMux).ResetMessageHandlers()
 }
 
 // CurrentContext returns the current context pointer.
@@ -64,12 +71,20 @@ func (b *Bot) Me() (*User, error) {
 func (b *Bot) execHandler(s *discordgo.Session, ev interface{}) error {
 	switch t := ev.(type) {
 	case *discordgo.MessageCreate:
-		return b.evMux.Dispatch(&NewMessageEvent{context: b.context, m: t})
+		return b.evMux.Dispatch(&EventNewMessage{context: b.context, m: t})
+	case *discordgo.MessageUpdate:
+		return b.evMux.Dispatch(&EventMessageUpdate{context: b.context, m: t})
+	case *discordgo.TypingStart:
+		return b.evMux.Dispatch(&EventUserTyping{context: b.context, ev: t})
 	}
 	return nil
 }
 
-func (b *Bot) SetAvatarFromFile(image io.Reader) error {
+// SetAvatarFromReader will read the given io.Reader and
+// set the content as avatar
+//
+// Remember to close the reader after use if applicable.
+func (b *Bot) SetAvatarFromReader(image io.Reader) error {
 	data, err := ioutil.ReadAll(image)
 	if err != nil {
 		return err
@@ -85,9 +100,11 @@ func (b *Bot) SetAvatarFromFile(image io.Reader) error {
 	avatar := fmt.Sprintf("data:%s;base64,%s", http.DetectContentType(data), b64)
 
 	_, err = b.context.intSession.UserUpdate("", "", me.internalUser.Username, avatar, "")
+
 	return err
 }
 
+// SetAvatarFromURI will download the URI data and set it as avatar
 func (b *Bot) SetAvatarFromURI(uri string) error {
 	resp, err := http.Get(uri)
 	if err != nil {
@@ -96,7 +113,19 @@ func (b *Bot) SetAvatarFromURI(uri string) error {
 
 	defer resp.Body.Close()
 
-	return b.SetAvatarFromFile(resp.Body)
+	return b.SetAvatarFromReader(resp.Body)
+}
+
+// SetAvatarFromFile will read the file and set it as avatar
+func (b *Bot) SetAvatarFromFile(file string) error {
+	dat, err := os.Open(file)
+	if err != nil {
+		return err
+	}
+
+	defer dat.Close()
+
+	return b.SetAvatarFromReader(dat)
 }
 
 // BlockForExit will block on the exit channel of the bot.

@@ -1,4 +1,4 @@
-package discorddotgo
+package discorddgo
 
 import (
 	"github.com/bwmarrin/discordgo"
@@ -10,6 +10,7 @@ type Channel struct {
 	intChannel *discordgo.Channel
 }
 
+// Guild returns the Discord Guild the channel belongs to
 func (c *Channel) Guild() (*Guild, error) {
 	g, err := c.context.intSession.Guild(c.intChannel.GuildID)
 	if err != nil {
@@ -21,6 +22,7 @@ func (c *Channel) Guild() (*Guild, error) {
 	}, nil
 }
 
+// Write sends the message string to a channel
 func (c *Channel) Write(message string) (*Message, error) {
 	msg, err := c.context.intSession.ChannelMessageSend(c.intChannel.ID, message)
 	if err != nil {
@@ -29,6 +31,7 @@ func (c *Channel) Write(message string) (*Message, error) {
 	return c.context.messageFromRaw(msg), nil
 }
 
+// ID returns the Guild ID
 func (c *Channel) ID() string {
 	return c.intChannel.ID
 }

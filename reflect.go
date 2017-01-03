@@ -1,4 +1,4 @@
-package discorddotgo
+package discorddgo
 
 import "reflect"
 

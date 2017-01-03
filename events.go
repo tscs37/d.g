@@ -1,4 +1,4 @@
-package discorddotgo
+package discorddgo
 
 import "github.com/bwmarrin/discordgo"
 
@@ -13,39 +13,45 @@ type Event interface {
 	Context() Context
 }
 
-type NewMessageEvent struct {
+type EventNewMessage struct {
 	context Context
 	m       *discordgo.MessageCreate
 }
 
-func (n NewMessageEvent) Name() string     { return eventNewMessage }
-func (n NewMessageEvent) Context() Context { return n.context }
-func (n *NewMessageEvent) Message() *Message {
+func (n EventNewMessage) Name() string     { return eventNewMessage }
+func (n EventNewMessage) Context() Context { return n.context }
+func (n *EventNewMessage) Message() *Message {
 	return n.context.messageFromRaw(n.m.Message)
 }
-func (n *NewMessageEvent) Channel() (*Channel, error) {
+func (n *EventNewMessage) Channel() (*Channel, error) {
 	return n.context.ChannelFromID(n.m.ChannelID)
 }
 
-type MessageUpdateEvent struct {
+type EventMessageUpdate struct {
 	context Context
-	msg     *discordgo.MessageUpdate
+	m       *discordgo.MessageUpdate
 }
 
-func (n MessageUpdateEvent) Name() string     { return eventMessageUpdate }
-func (n MessageUpdateEvent) Context() Context { return n.context }
+func (n EventMessageUpdate) Name() string     { return eventMessageUpdate }
+func (n EventMessageUpdate) Context() Context { return n.context }
+func (n EventMessageUpdate) Message() *Message {
+	return n.context.messageFromRaw(n.m.Message)
+}
+func (n *EventMessageUpdate) Channel() (*Channel, error) {
+	return n.context.ChannelFromID(n.m.ChannelID)
+}
 
-type UserTypingEvent struct {
+type EventUserTyping struct {
 	context Context
 	ev      *discordgo.TypingStart
 }
 
-func (n UserTypingEvent) Name() string     { return eventUserTyping }
-func (n UserTypingEvent) Context() Context { return n.context }
-func (n *UserTypingEvent) User() (*User, error) {
+func (n EventUserTyping) Name() string     { return eventUserTyping }
+func (n EventUserTyping) Context() Context { return n.context }
+func (n EventUserTyping) User() (*User, error) {
 	return n.context.UserFromID(n.ev.UserID)
 }
 
-func (n *UserTypingEvent) Channel() (*Channel, error) {
+func (n EventUserTyping) Channel() (*Channel, error) {
 	return n.context.ChannelFromID(n.ev.ChannelID)
 }

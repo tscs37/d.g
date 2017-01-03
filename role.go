@@ -1,4 +1,4 @@
-package discorddotgo
+package discorddgo
 
 import "github.com/bwmarrin/discordgo"
 
@@ -7,6 +7,8 @@ type Role struct {
 	intRole *discordgo.Role
 }
 
+// Color returns the color of a role split up into the three bytes
+// that make it up.
 func (r *Role) Color() (byte, byte, byte) {
 	red := byte(r.intRole.Color >> 16)
 	green := byte(r.intRole.Color >> 8)

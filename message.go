@@ -1,6 +1,10 @@
-package discorddotgo
+package discorddgo
 
-import "github.com/bwmarrin/discordgo"
+import (
+	"time"
+
+	"github.com/bwmarrin/discordgo"
+)
 
 // Message wraps the message type with context
 type Message struct {
@@ -65,13 +69,13 @@ func (m *Message) Guild() (*Guild, error) {
 }
 
 // Timestamp returns the timestamp of a message
-func (m *Message) Timestamp() string {
-	return m.intMessage.Timestamp
+func (m *Message) Timestamp() (time.Time, error) {
+	return m.intMessage.Timestamp.Parse()
 }
 
 // EditedTimestamp returns the timestamp of a message when it was edited
-func (m *Message) EditedTimestamp() string {
-	return m.intMessage.EditedTimestamp
+func (m *Message) EditedTimestamp() (time.Time, error) {
+	return m.intMessage.EditedTimestamp.Parse()
 }
 
 // Mentioned returns true if the given user was mentioned.
@@ -137,11 +141,15 @@ func (m *Message) Edit(newText string) (*Message, error) {
 	msg, err := m.context.int().ChannelMessageEdit(ch.ID(), m.ID(), newText)
 	if err != nil {
 		return nil, err
-	}
+	}// Casting the Mux to a NewMessageMux for better typesafety
+	bot.Mux().AddSimpleMessageHandler(handler)
 	return m.context.messageFromRaw(msg), nil
 }
 
 // FromMe returns true if the message is from the current user.
+//
+// The author won't be parsed, it simply compares IDs, so it's faster
+// and less error prone.
 func (m *Message) FromMe() bool {
 	if m.AuthorUser().ID() == m.context.Self().ID() {
 		return true

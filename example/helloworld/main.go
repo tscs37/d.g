@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	ddg "bitbucket.org/tscs37/discorddotgo"
+	ddg "go.rls.moe/d.g"
 )
 
 func main() {
@@ -28,7 +28,10 @@ func main() {
 
 	fmt.Println("Ready!")
 
-	bot.Mux().AddHandler(handler)
+	// For Hello World we can use the SMH event sink,
+	// if you want to receive other event, you'll have to write
+	// your own sink.
+	bot.SetSink(ddg.NewSimpleMessageHandler(handler))
 
 	bot.BlockForExit()
 }

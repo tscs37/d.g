@@ -141,8 +141,7 @@ func (m *Message) Edit(newText string) (*Message, error) {
 	msg, err := m.context.int().ChannelMessageEdit(ch.ID(), m.ID(), newText)
 	if err != nil {
 		return nil, err
-	}// Casting the Mux to a NewMessageMux for better typesafety
-	bot.Mux().AddSimpleMessageHandler(handler)
+	}
 	return m.context.messageFromRaw(msg), nil
 }
 

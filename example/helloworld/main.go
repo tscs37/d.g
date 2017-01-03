@@ -55,9 +55,5 @@ func handler(c ddg.Context, ch *ddg.Channel, m *ddg.Message) error {
 		c.RequestExit()
 	}
 
-	if m.DisplayText() == "nick" {
-
-	}
-
 	return nil
 }

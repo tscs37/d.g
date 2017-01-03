@@ -48,12 +48,14 @@ func NewBot(token string) (*Bot, error) {
 	return b, nil
 }
 
-// Mux returns the currently used Event Mux of the bot
+// Sink returns the current EventSink
+//
+// This may be used by plugins to dispatch custom events.
 func (b *Bot) Sink() EventSink {
 	return b.evMux
 }
 
-// SetMux sets a custom event mux/dispatch
+// SetSink sets the EventSink to be used by D.G
 func (b *Bot) SetSink(ev EventSink) {
 	b.evMux = ev
 }

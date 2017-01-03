@@ -146,9 +146,6 @@ func (m *Message) Edit(newText string) (*Message, error) {
 }
 
 // FromMe returns true if the message is from the current user.
-//
-// The author won't be parsed, it simply compares IDs, so it's faster
-// and less error prone.
 func (m *Message) FromMe() bool {
 	if m.AuthorUser().ID() == m.context.Self().ID() {
 		return true

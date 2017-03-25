@@ -96,7 +96,7 @@ func (c Context) RoleFromID(gid, id string) (*Role, error) {
 func (c Context) Self() *User {
 	u, err := c.UserFromID("@me")
 	if err != nil {
-		log.Fatal("I am not a user!")
+		log.Fatal("I am not a user!", err.Error())
 	}
 	return u
 }

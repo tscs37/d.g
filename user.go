@@ -42,6 +42,9 @@ type Member struct {
 
 // Nick returns the Nickname of a member
 func (m *Member) Nick() string {
+	if m.internalMember.Nick == "" {
+		return m.internalMember.User.Username
+	}
 	return m.internalMember.Nick
 }
 
